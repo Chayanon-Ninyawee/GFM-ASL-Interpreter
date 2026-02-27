@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Sign Language Reader</title>
+    <link rel="stylesheet" href="style.css">
+
+    <!-- OpenCV -->
+    <script async src="https://docs.opencv.org/4.9.0/opencv.js"></script>
+
+    <!-- MediaPipe Hands -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+</head>
+
+<body>
+    <h1>Sign Language Reader</h1>
+
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
+
+    <div id="output">Detected Letter: -</div>
+
+    <script src="script.js"></script>
+</body>
+</html>
