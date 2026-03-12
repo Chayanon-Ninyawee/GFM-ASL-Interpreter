@@ -1,19 +1,80 @@
 body {
-    text-align: center;
-    font-family: Arial, sans-serif;
-    background: #111;
-    color: white;
+    margin:0;
+    font-family: system-ui, Arial;
+    background:#0f172a;
+    color:white;
 }
 
-video, canvas {
-    width: 480px;
-    height: 360px;
-    border-radius: 10px;
-    margin-top: 10px;
+.container{
+    max-width:900px;
+    margin:auto;
+    padding:20px;
 }
 
-#output {
-    font-size: 32px;
-    margin-top: 20px;
-    font-weight: bold;
+h1{
+    text-align:center;
+    margin-bottom:20px;
+}
+
+.camera-box{
+    position:relative;
+    width:100%;
+    aspect-ratio:4/3;
+    overflow:hidden;
+}
+
+video, canvas{
+    position:absolute;
+    width:100%;
+    height:100%;
+    border-radius:12px;
+
+    object-fit:cover;   /* this crops instead of stretching */
+}
+
+.panel{
+    text-align:center;
+    margin-top:20px;
+}
+
+.letter{
+    font-size:72px;
+    font-weight:700;
+}
+
+.word{
+    font-size:36px;
+    margin-top:10px;
+    color:#60a5fa;
+}
+
+.controls{
+    text-align:center;
+    margin-top:20px;
+}
+
+button{
+    background:#2563eb;
+    border:none;
+    padding:10px 20px;
+    border-radius:8px;
+    color:white;
+    font-size:16px;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#1d4ed8;
+}
+
+@media (max-width:600px){
+
+.letter{
+    font-size:56px;
+}
+
+.word{
+    font-size:28px;
+}
+
 }

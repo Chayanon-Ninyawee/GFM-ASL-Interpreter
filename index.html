@@ -1,26 +1,45 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Sign Language Reader</title>
-    <link rel="stylesheet" href="style.css">
 
-    <!-- OpenCV -->
-    <script async src="https://docs.opencv.org/4.9.0/opencv.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- MediaPipe Hands -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<title>ASL Interpreter</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+
 </head>
 
 <body>
-    <h1>Sign Language Reader</h1>
 
-    <video id="video" autoplay playsinline></video>
-    <canvas id="canvas"></canvas>
+<div class="container">
 
-    <div id="output">Detected Letter: -</div>
+<h1>ASL Interpreter</h1>
 
-    <script src="script.js"></script>
+<div class="camera-box">
+<video id="video" autoplay playsinline></video>
+<canvas id="canvas"></canvas>
+</div>
+
+<div class="panel">
+<div class="letter" id="letter">-</div>
+<div class="word" id="word"></div>
+</div>
+
+<div class="controls">
+<button onclick="clearWord()">Clear Word</button>
+</div>
+
+</div>
+
+<script src="script.js"></script>
+
 </body>
 </html>

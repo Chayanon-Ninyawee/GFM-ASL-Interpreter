@@ -1,40 +1,88 @@
 const videoElement = document.getElementById("video");
 const canvasElement = document.getElementById("canvas");
 const canvasCtx = canvasElement.getContext("2d");
-const outputDiv = document.getElementById("output");
 
-// Initialize MediaPipe Hands
-const hands = new Hands({
-  locateFile: (file) => {
-    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-  },
-});
+const letterDiv = document.getElementById("letter");
+const wordDiv = document.getElementById("word");
 
-hands.setOptions({
-  maxNumHands: 1,
-  modelComplexity: 1,
-  minDetectionConfidence: 0.7,
-  minTrackingConfidence: 0.7,
-});
+function resizeCanvas() {
+  const rect = canvasElement.getBoundingClientRect();
 
-hands.onResults(onResults);
+  canvasElement.width = rect.width;
+  canvasElement.height = rect.height;
+}
 
-// Start camera
-const camera = new Camera(videoElement, {
-  onFrame: async () => {
-    await hands.send({ image: videoElement });
-  },
-  width: 480,
-  height: 360,
-});
-camera.start();
+window.addEventListener("resize", resizeCanvas);
 
-// ===============================
-// Simple Letter Detection Logic
-// ===============================
+resizeCanvas();
 
-function detectLetter(landmarks) {
-  const thumbTip = landmarks[4];
+let model = null;
+
+async function loadModel() {
+  try {
+    model = await tf.loadLayersModel("model/model.json");
+    console.log("ML model loaded");
+  } catch (e) {
+    console.log("No ML model found, using heuristic");
+  }
+}
+
+loadModel();
+
+// smoothing buffer
+
+let history = [];
+
+function smoothLetter(letter) {
+  history.push(letter);
+
+  if (history.length > 10) history.shift();
+
+  const freq = {};
+
+  for (const l of history) freq[l] = (freq[l] || 0) + 1;
+
+  let best = "-";
+  let max = 0;
+
+  for (const k in freq) {
+    if (freq[k] > max) {
+      max = freq[k];
+      best = k;
+    }
+  }
+
+  return best;
+}
+
+// word builder
+
+let currentWord = "";
+let lastLetter = "-";
+let stableFrames = 0;
+
+function updateWord(letter) {
+  if (letter === lastLetter) stableFrames++;
+  else stableFrames = 0;
+
+  if (stableFrames === 8 && letter !== "-") {
+    currentWord += letter;
+    stableFrames = 0;
+  }
+
+  lastLetter = letter;
+
+  return currentWord;
+}
+
+function clearWord() {
+  currentWord = "";
+  wordDiv.innerText = "";
+}
+
+// fallback detection if no ML model
+
+function heuristicLetter(landmarks) {
   const indexTip = landmarks[8];
   const middleTip = landmarks[12];
   const ringTip = landmarks[16];
@@ -45,36 +93,95 @@ function detectLetter(landmarks) {
   const ringUp = ringTip.y < landmarks[14].y;
   const pinkyUp = pinkyTip.y < landmarks[18].y;
 
-  // A: all fingers down
-  if (!indexUp && !middleUp && !ringUp && !pinkyUp) {
-    return "A";
-  }
+  if (!indexUp && !middleUp && !ringUp && !pinkyUp) return "A";
 
-  // B: all fingers up
-  if (indexUp && middleUp && ringUp && pinkyUp) {
-    return "B";
-  }
+  if (indexUp && middleUp && ringUp && pinkyUp) return "B";
 
-  // L: index up, others down
-  if (indexUp && !middleUp && !ringUp && !pinkyUp) {
-    return "L";
-  }
-
-  // C: thumb close to index (curve shape)
-  const distance = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
-
-  if (distance < 0.05) {
-    return "C";
-  }
+  if (indexUp && !middleUp && !ringUp && !pinkyUp) return "L";
 
   return "-";
 }
 
-// ===============================
+function predictLetter(landmarks) {
+  if (!model) return heuristicLetter(landmarks);
+
+  const input = [];
+
+  for (const p of landmarks) {
+    input.push(p.x);
+    input.push(p.y);
+    input.push(p.z);
+  }
+
+  const tensor = tf.tensor([input]);
+
+  const prediction = model.predict(tensor);
+
+  const index = prediction.argMax(1).dataSync()[0];
+
+  const labels = [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "J",
+    "K",
+    "L",
+    "M",
+    "N",
+    "O",
+    "P",
+    "Q",
+    "R",
+    "S",
+    "T",
+    "U",
+    "V",
+    "W",
+    "X",
+    "Y",
+    "Z",
+  ];
+
+  return labels[index];
+}
+
+// mediapipe setup
+
+const hands = new Hands({
+  locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
+});
+
+hands.setOptions({
+  maxNumHands: 1,
+  modelComplexity: 0,
+  minDetectionConfidence: 0.7,
+  minTrackingConfidence: 0.7,
+});
+
+hands.onResults(onResults);
+
+const camera = new Camera(videoElement, {
+  onFrame: async () => {
+    await hands.send({ image: videoElement });
+  },
+
+  width: 640,
+  height: 480,
+});
+
+camera.start();
 
 function onResults(results) {
   canvasCtx.save();
+
   canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
   canvasCtx.drawImage(
     results.image,
     0,
@@ -85,10 +192,25 @@ function onResults(results) {
 
   if (results.multiHandLandmarks.length > 0) {
     const landmarks = results.multiHandLandmarks[0];
-    const letter = detectLetter(landmarks);
-    outputDiv.innerText = "Detected Letter: " + letter;
-  } else {
-    outputDiv.innerText = "Detected Letter: -";
+
+    drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {
+      color: "#00ffaa",
+      lineWidth: 1.5,
+    });
+
+    drawLandmarks(canvasCtx, landmarks, {
+      color: "#ff5555",
+      radius: 2,
+    });
+
+    let letter = predictLetter(landmarks);
+
+    letter = smoothLetter(letter);
+
+    const word = updateWord(letter);
+
+    letterDiv.innerText = letter;
+    wordDiv.innerText = word;
   }
 
   canvasCtx.restore();
