@@ -20,10 +20,11 @@ let model = null;
 
 async function loadModel() {
   try {
-    model = await tf.loadLayersModel("model/model.json");
+    model = await tf.loadGraphModel("web_model/model.json");
     console.log("ML model loaded");
   } catch (e) {
     console.log("No ML model found, using heuristic");
+    console.log(e);
   }
 }
 
@@ -105,50 +106,65 @@ function heuristicLetter(landmarks) {
 function predictLetter(landmarks) {
   if (!model) return heuristicLetter(landmarks);
 
-  const input = [];
+  return tf.tidy(() => {
+    const input = [];
 
-  for (const p of landmarks) {
-    input.push(p.x);
-    input.push(p.y);
-    input.push(p.z);
-  }
+    // const wrist = landmarks[0];
 
-  const tensor = tf.tensor([input]);
+    // for (const p of landmarks) {
+    //   input.push(p.x - wrist.x);
+    //   input.push(p.y - wrist.y);
+    //   input.push(p.z - wrist.z);
+    // }
 
-  const prediction = model.predict(tensor);
+    for (const p of landmarks) {
+      input.push(p.x);
+      input.push(p.y);
+      input.push(p.z);
+    }
 
-  const index = prediction.argMax(1).dataSync()[0];
+    const tensor = tf.tensor(input).reshape([1, 63, 1]);
 
-  const labels = [
-    "A",
-    "B",
-    "C",
-    "D",
-    "E",
-    "F",
-    "G",
-    "H",
-    "I",
-    "J",
-    "K",
-    "L",
-    "M",
-    "N",
-    "O",
-    "P",
-    "Q",
-    "R",
-    "S",
-    "T",
-    "U",
-    "V",
-    "W",
-    "X",
-    "Y",
-    "Z",
-  ];
+    const prediction = model.execute(tensor);
 
-  return labels[index];
+    const index = prediction.argMax(1).dataSync()[0];
+
+    const labels = [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E",
+      "F",
+      "G",
+      "H",
+      "I",
+      "J",
+      "K",
+      "L",
+      "M",
+      "N",
+      "O",
+      "P",
+      "Q",
+      "R",
+      "S",
+      "T",
+      "U",
+      "V",
+      "W",
+      "X",
+      "Y",
+      "Z",
+      "del",
+      "nothing",
+      "space",
+    ];
+
+    console.log(input.length);
+
+    return labels[index];
+  });
 }
 
 // mediapipe setup
